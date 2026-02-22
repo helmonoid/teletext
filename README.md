@@ -27,6 +27,7 @@ Open http://localhost:8000
 - 8 monospace fonts from Google Fonts
 - Custom layout width (presets or any CSS value)
 - RSS feed auto-discovery from any website URL
+- Feed active/inactive toggle (disable feeds without deleting them)
 - OPML import/export for feed management
 - Feed health monitoring (success/error indicators)
 - Bookmark and read/unread tracking (per-browser via localStorage)
@@ -149,6 +150,7 @@ Bookmarks and read status are stored in the browser so each user gets their own 
 | GET | `/api/feeds` | -- | `{feeds: [url, ...]}` |
 | POST | `/api/feeds` | `{url}` | `{ok: true}` or 409 |
 | POST | `/api/feeds/delete` | `{url}` | `{ok: true}` or 404 |
+| POST | `/api/feeds/toggle` | `{url}` | `{ok: true, active: bool}` or 404 |
 | POST | `/api/feeds/discover` | `{url}` | `{feeds: [{url, title}, ...]}` |
 | GET | `/api/feeds/health` | -- | `{health: {url: {last_success, error_count, ...}}}` |
 | POST | `/api/feeds/opml/import` | `{content}` | `{imported: N, feeds: [...]}` |
