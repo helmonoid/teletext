@@ -780,6 +780,23 @@ html, body {
     flex-shrink: 0;
 }
 
+.feed-item.inactive {
+    opacity: 0.45;
+}
+
+.feed-toggle {
+    padding: 3px 10px !important;
+    font-size: 0.75em !important;
+    min-width: auto;
+}
+
+.feed-toggle.off {
+    --btn-bg: #444444;
+    --btn-fg: #999999;
+    --btn-hover-bg: #555555;
+    border-color: #555555;
+}
+
 .feed-add-row {
     display: flex;
     gap: 6px;

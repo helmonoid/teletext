@@ -469,10 +469,12 @@ export function renderFeedManager(state, handlers) {
 
     modal.appendChild(el('div', { className: 'modal-title', textContent: 'FEED MANAGER' }));
 
-    // Feed list with health indicators
+    // Feed list with health indicators and toggle
     const list = el('ul', { className: 'feed-list' });
     const health = state.feedHealth || {};
-    for (const url of state.feeds) {
+    for (const feed of state.feeds) {
+        const url = feed.url || feed;
+        const active = feed.active !== false;
         const h = health[url];
         let statusIcon = '\u2022'; // bullet
         let statusClass = 'feed-status-unknown';
@@ -485,10 +487,16 @@ export function renderFeedManager(state, handlers) {
                 statusClass = 'feed-status-ok';
             }
         }
-        list.appendChild(el('li', { className: 'feed-item' }, [
+        const itemClass = 'feed-item' + (active ? '' : ' inactive');
+        list.appendChild(el('li', { className: itemClass }, [
             el('span', { className: `feed-status ${statusClass}`, textContent: statusIcon }),
             el('span', { className: 'feed-url', textContent: url }),
             h && h.article_count ? el('span', { className: 'feed-count', textContent: `(${h.article_count})` }) : null,
+            el('button', {
+                className: 'tt-btn feed-toggle' + (active ? '' : ' off'),
+                textContent: active ? 'ON' : 'OFF',
+                onClick: () => handlers.toggleFeed(url),
+            }),
             el('button', { className: 'tt-btn danger', textContent: 'DEL', onClick: () => handlers.deleteFeed(url) }),
         ]));
     }

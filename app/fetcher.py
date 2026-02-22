@@ -105,7 +105,7 @@ def fetch_articles() -> list[dict]:
     """
     all_articles: list[dict] = []
 
-    for feed_url in feeds.list_feeds():
+    for feed_url in feeds.list_active_feed_urls():
         try:
             articles_from_feed = _fetch_single_feed(feed_url)
             all_articles.extend(articles_from_feed)

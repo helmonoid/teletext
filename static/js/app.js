@@ -16,6 +16,7 @@ const handlers = {
     showNumberInput, clearNumberInput,
     moveHighlight, selectHighlighted,
     openFilter, closeFilter, setFilter,
+    toggleFeed: doToggleFeed,
     discoverFeeds: doDiscoverFeeds,
     importOpml: doImportOpml, importOpmlContent: doImportOpmlContent,
     exportOpml: doExportOpml,
@@ -292,6 +293,18 @@ async function deleteFeed(url) {
         showToast('FEED REMOVED');
     } catch (e) {
         showToast('REMOVE FAILED');
+    }
+}
+
+async function doToggleFeed(url) {
+    try {
+        const result = await api.toggleFeed(url);
+        const data = await api.getFeeds();
+        setState({ feeds: data.feeds });
+        renderFeedManager(getState(), handlers);
+        showToast(result.active ? 'FEED ENABLED' : 'FEED DISABLED');
+    } catch (e) {
+        showToast('TOGGLE FAILED');
     }
 }
 
