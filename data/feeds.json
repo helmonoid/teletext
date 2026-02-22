@@ -1,0 +1,21 @@
+[
+  "https://feeds.bbci.co.uk/news/rss.xml",
+  "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml",
+  "https://feeds.skynews.com/feeds/rss/home.xml",
+  "https://api.sr.se/api/rss/program/2054",
+  "https://www.tv4.se/rss",
+  "https://fortune.com/feed/fortune-feeds/?id=3230629",
+  "https://www.techradar.com/feeds.xml",
+  "http://news.ycombinator.com/rss",
+  "https://blog.samaltman.com/posts.atom",
+  "http://www.theverge.com/rss/full.xml",
+  "https://techcrunch.com/feed/",
+  "http://hnrss.org/show",
+  "https://code.facebook.com/posts/rss",
+  "https://engineering.fb.com/feed/",
+  "http://googleresearch.blogspot.com/atom.xml",
+  "https://openai.com/news/engineering/rss.xml",
+  "https://deepmind.com/blog/feed/basic/",
+  "https://developer.nvidia.com/blog/feed",
+  "https://www.euronews.com/rss"
+]

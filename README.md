@@ -2,6 +2,10 @@
 
 Browser-based RSS news reader styled after classic Teletext/Ceefax pages. Built with FastAPI, vanilla JS, and Docker.
 
+<p align="center">
+  <img src="frontend.png" alt="Frontend" />
+</p>
+
 ## Quick Start (Docker)
 
 ```bash
