@@ -1,0 +1,10 @@
+services:
+  teletext-web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - TELETEXT_DATA_DIR=/app/data
+    restart: unless-stopped
