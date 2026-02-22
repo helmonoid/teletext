@@ -602,14 +602,24 @@ html, body {
     align-items: center;
     gap: 3px;
     font-size: 0.8em;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 2px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.shortcut-badge:active .shortcut-key {
+    transform: translateY(1px);
 }
 
 .shortcut-key {
     background: var(--badge-bg);
     color: var(--badge-fg);
-    padding: 2px 6px;
+    padding: 4px 8px;
     font-weight: bold;
     font-size: 0.9em;
+    min-width: 28px;
+    text-align: center;
 }
 
 .shortcut-label {

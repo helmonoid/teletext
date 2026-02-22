@@ -283,7 +283,7 @@ export function renderArticleDetail(state, handlers) {
     content.appendChild(view);
 }
 
-export function renderFooter(state) {
+export function renderFooter(state, handlers) {
     const footer = document.getElementById('footer');
     footer.innerHTML = '';
 
@@ -295,26 +295,37 @@ export function renderFooter(state) {
     let shortcuts;
     if (state.view === 'list') {
         shortcuts = [
-            ['N', 'Next'], ['P', 'Prev'], ['#', 'Go To'], ['\u2191\u2193', 'Nav'],
-            ['/', 'Filter'], ['R', 'Refresh'],
-            ['B', 'Bookmarks'], ['S', 'Settings'], ['F', 'Feeds'],
+            ['N', 'Next', () => handlers.nextPage()],
+            ['P', 'Prev', () => handlers.prevPage()],
+            ['/', 'Filter', () => handlers.openFilter()],
+            ['R', 'Refresh', () => handlers.refresh()],
+            ['B', 'Bookmarks', () => handlers.toggleBookmark()],
+            ['S', 'Settings', () => handlers.openSettings()],
+            ['F', 'Feeds', () => handlers.openFeedManager()],
         ];
     } else if (state.view === 'bookmarks') {
         shortcuts = [
-            ['ESC', 'Back'], ['\u2191\u2193', 'Nav'], ['R', 'Refresh'], ['S', 'Settings'], ['F', 'Feeds'],
+            ['ESC', 'Back', () => handlers.back()],
+            ['R', 'Refresh', () => handlers.refresh()],
+            ['S', 'Settings', () => handlers.openSettings()],
+            ['F', 'Feeds', () => handlers.openFeedManager()],
         ];
     } else {
         shortcuts = [
-            ['ESC', 'Back'], ['B', 'Bookmark'], ['S', 'Settings'], ['F', 'Feeds'],
+            ['ESC', 'Back', () => handlers.back()],
+            ['B', 'Bookmark', () => handlers.toggleBookmark()],
+            ['S', 'Settings', () => handlers.openSettings()],
+            ['F', 'Feeds', () => handlers.openFeedManager()],
         ];
     }
 
     const container = el('div', { className: 'footer-shortcuts' });
-    for (const [key, label] of shortcuts) {
-        container.appendChild(el('span', { className: 'shortcut-badge' }, [
+    for (const [key, label, action] of shortcuts) {
+        const badge = el('span', { className: 'shortcut-badge', onClick: action }, [
             el('span', { className: 'shortcut-key', textContent: key }),
             el('span', { className: 'shortcut-label', textContent: label }),
-        ]));
+        ]);
+        container.appendChild(badge);
     }
     footer.appendChild(container);
 }
@@ -634,7 +645,7 @@ export function render(state, handlers) {
         } else {
             renderArticleList(state, handlers);
         }
-        renderFooter(state);
+        renderFooter(state, handlers);
         requestAnimationFrame(() => content.classList.remove('page-transition'));
     });
 }
