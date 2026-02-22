@@ -4,7 +4,7 @@
    ============================================================ */
 
 /* ---- Google Fonts ---- */
-@import url('https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;700&family=Fira+Code:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Mono:wght@400;700&family=Fira+Code:wght@400;700&family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
 
 /* ---- Reset & base ---- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13,6 +13,7 @@
     --font: 'Courier New', Consolas, 'Liberation Mono', monospace;
     --fs: 16px;
     --lh: 1.45;
+    --max-width: 960px;
 }
 
 /* ---- Theme variables ---- */
@@ -248,7 +249,7 @@ html, body {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    max-width: 960px;
+    max-width: var(--max-width);
     margin: 0 auto;
     padding: 0 8px;
 }

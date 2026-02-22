@@ -4,7 +4,8 @@ import os
 from app import config
 
 VALID_THEMES = ["dark", "light", "system", "amber", "green", "blue", "white"]
-VALID_FONTS = ["default", "vt323", "ibm-plex", "fira-code"]
+VALID_FONTS = ["default", "vt323", "ibm-plex", "fira-code", "space-mono", "jetbrains", "press-start", "share-tech"]
+VALID_LAYOUTS = ["compact", "default", "wide", "full"]
 
 
 def _get_settings_path():
@@ -93,6 +94,14 @@ def update_settings(updates: dict) -> dict:
                 f"Invalid font '{font}'. Must be one of: {', '.join(VALID_FONTS)}"
             )
         current["font"] = font
+
+    if "layout" in updates:
+        layout = updates["layout"]
+        if layout not in VALID_LAYOUTS:
+            raise ValueError(
+                f"Invalid layout '{layout}'. Must be one of: {', '.join(VALID_LAYOUTS)}"
+            )
+        current["layout"] = layout
 
     if "infinite_scroll" in updates:
         if not isinstance(updates["infinite_scroll"], bool):

@@ -4,7 +4,7 @@ const state = {
     totalPages: 1,
     settings: {
         theme: 'dark', articles_per_page: 8, auto_refresh_seconds: 0,
-        font: 'default', infinite_scroll: false,
+        font: 'default', layout: 'default', infinite_scroll: false,
         notifications_enabled: false, keyword_alerts: [],
     },
     feeds: [],

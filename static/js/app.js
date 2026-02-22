@@ -1,9 +1,10 @@
 import * as api from './api.js';
 import { getState, setState, subscribe } from './state.js';
 import { render, renderSettings, renderFeedManager, closeModal, showToast, showNumberInput, clearNumberInput, updateFavicon } from './render.js';
-import { applyTheme, applyFont, initThemeListener } from './themes.js';
+import { applyTheme, applyFont, applyLayout, initThemeListener } from './themes.js';
 import { initKeyboard } from './keyboard.js';
 import * as notifications from './notifications.js';
+import * as storage from './storage.js';
 
 let refreshInterval = null;
 
@@ -38,6 +39,7 @@ async function refresh() {
     setState({ loading: true });
     try {
         const data = await api.fetchArticles();
+        storage.enrichArticles(data.articles);
         const perPage = getState().settings.articles_per_page || 8;
         setState({
             articles: data.articles,
@@ -87,17 +89,15 @@ function selectByIndex(idx) {
     }
 }
 
-async function viewArticle(article) {
+function viewArticle(article) {
     setState({ view: 'detail', selectedArticle: article, highlightIndex: -1 });
-    // Auto-mark as read
+    // Auto-mark as read in localStorage
     if (article.url && !article.read) {
-        try {
-            await api.markRead(article.url);
-            article.read = true;
-            setState({ articles: [...getState().articles] });
-            const unread = getState().articles.filter(a => !a.read).length;
-            updateFavicon(unread);
-        } catch (e) { /* ignore 409 if already read */ }
+        storage.markRead(article.url);
+        article.read = true;
+        setState({ articles: [...getState().articles] });
+        const unread = getState().articles.filter(a => !a.read).length;
+        updateFavicon(unread);
     }
 }
 
@@ -162,10 +162,10 @@ function selectHighlighted() {
     }
 }
 
-async function toggleBookmark() {
+function toggleBookmark() {
     const s = getState();
     if (s.view === 'detail' && s.selectedArticle) {
-        await toggleBookmarkFor(s.selectedArticle);
+        toggleBookmarkFor(s.selectedArticle);
     } else if (s.view === 'list') {
         setState({ view: 'bookmarks', highlightIndex: -1 });
     } else if (s.view === 'bookmarks') {
@@ -173,40 +173,32 @@ async function toggleBookmark() {
     }
 }
 
-async function toggleBookmarkFor(article) {
-    try {
-        if (article.bookmarked) {
-            await api.removeBookmark(article.url);
-            article.bookmarked = false;
-            showToast('BOOKMARK REMOVED');
-        } else {
-            await api.addBookmark(article.url);
-            article.bookmarked = true;
-            showToast('BOOKMARKED');
-        }
-        setState({ articles: [...getState().articles] });
-    } catch (e) {
-        showToast('BOOKMARK ERROR');
+function toggleBookmarkFor(article) {
+    if (article.bookmarked) {
+        storage.removeBookmark(article.url);
+        article.bookmarked = false;
+        showToast('BOOKMARK REMOVED');
+    } else {
+        storage.addBookmark(article.url);
+        article.bookmarked = true;
+        showToast('BOOKMARKED');
     }
+    setState({ articles: [...getState().articles] });
 }
 
-async function toggleReadFor(article) {
-    try {
-        if (article.read) {
-            await api.markUnread(article.url);
-            article.read = false;
-            showToast('MARKED UNREAD');
-        } else {
-            await api.markRead(article.url);
-            article.read = true;
-            showToast('MARKED READ');
-        }
-        setState({ articles: [...getState().articles] });
-        const unread = getState().articles.filter(a => !a.read).length;
-        updateFavicon(unread);
-    } catch (e) {
-        showToast('READ STATUS ERROR');
+function toggleReadFor(article) {
+    if (article.read) {
+        storage.markUnread(article.url);
+        article.read = false;
+        showToast('MARKED UNREAD');
+    } else {
+        storage.markRead(article.url);
+        article.read = true;
+        showToast('MARKED READ');
     }
+    setState({ articles: [...getState().articles] });
+    const unread = getState().articles.filter(a => !a.read).length;
+    updateFavicon(unread);
 }
 
 function back() {
@@ -276,6 +268,7 @@ async function saveSettings(updates) {
         setState({ settings: result });
         applyTheme(result.theme);
         applyFont(result.font || 'default');
+        applyLayout(result.layout || 'default');
         setupAutoRefresh(result.auto_refresh_seconds);
         const perPage = result.articles_per_page || 8;
         setState({ totalPages: Math.max(1, Math.ceil(getState().articles.length / perPage)), page: 1 });
@@ -378,6 +371,7 @@ async function init() {
         setState({ settings });
         applyTheme(settings.theme);
         applyFont(settings.font || 'default');
+        applyLayout(settings.layout || 'default');
         setupAutoRefresh(settings.auto_refresh_seconds);
         if (settings.notifications_enabled) {
             notifications.requestPermission();

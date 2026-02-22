@@ -118,14 +118,15 @@ function getFilteredArticles(state) {
 
 export function renderArticleList(state, handlers) {
     const content = document.getElementById('content');
-    content.innerHTML = '';
 
     if (state.loading) {
+        content.innerHTML = '';
         content.appendChild(el('div', { className: 'loading-text', textContent: 'FETCHING FEEDS...' }));
         return;
     }
 
     if (state.articles.length === 0) {
+        content.innerHTML = '';
         const empty = el('div', { className: 'empty-state' }, [
             'No articles loaded. Press ',
             el('span', { className: 'key-hint', textContent: '[R]' }),
@@ -137,9 +138,21 @@ export function renderArticleList(state, handlers) {
         return;
     }
 
-    // Filter bar
-    const filterBar = renderFilterBar(state, handlers);
-    if (filterBar) content.appendChild(filterBar);
+    // If filter input is focused, only update the table (preserve input cursor)
+    const existingFilterInput = document.getElementById('filter-input');
+    const filterFocused = existingFilterInput && document.activeElement === existingFilterInput;
+
+    if (filterFocused) {
+        // Remove only the table and empty-state, keep filter bar
+        const oldTable = content.querySelector('.article-table');
+        const oldEmpty = content.querySelector('.empty-state');
+        if (oldTable) oldTable.remove();
+        if (oldEmpty) oldEmpty.remove();
+    } else {
+        content.innerHTML = '';
+        const filterBar = renderFilterBar(state, handlers);
+        if (filterBar) content.appendChild(filterBar);
+    }
 
     const filtered = getFilteredArticles(state);
 
@@ -149,18 +162,16 @@ export function renderArticleList(state, handlers) {
     }
 
     if (state.settings.infinite_scroll) {
-        // Infinite scroll: show all filtered articles
         content.appendChild(buildArticleTable(filtered, 0, handlers, state));
     } else {
-        // Paginated
         const perPage = state.settings.articles_per_page || 8;
         const start = (state.page - 1) * perPage;
         const pageArticles = filtered.slice(start, start + perPage);
         content.appendChild(buildArticleTable(pageArticles, start, handlers, state));
     }
 
-    // Focus filter input if filter mode
-    if (state.filterMode) {
+    // Focus filter input on first open (not when already focused)
+    if (state.filterMode && !filterFocused) {
         setTimeout(() => {
             const input = document.getElementById('filter-input');
             if (input) input.focus();
@@ -344,7 +355,11 @@ export function renderSettings(state, handlers) {
 
     // Font
     const fontSelect = el('select', { className: 'tt-select', id: 'setting-font' });
-    for (const [val, label] of [['default', 'DEFAULT'], ['vt323', 'VT323'], ['ibm-plex', 'IBM PLEX MONO'], ['fira-code', 'FIRA CODE']]) {
+    for (const [val, label] of [
+        ['default', 'DEFAULT'], ['vt323', 'VT323'], ['ibm-plex', 'IBM PLEX MONO'],
+        ['fira-code', 'FIRA CODE'], ['space-mono', 'SPACE MONO'], ['jetbrains', 'JETBRAINS MONO'],
+        ['press-start', 'PRESS START 2P'], ['share-tech', 'SHARE TECH MONO'],
+    ]) {
         const opt = el('option', { value: val, textContent: label });
         if (val === state.settings.font) opt.selected = true;
         fontSelect.appendChild(opt);
@@ -352,6 +367,18 @@ export function renderSettings(state, handlers) {
     form.appendChild(el('div', { className: 'settings-row' }, [
         el('label', { className: 'settings-label', textContent: 'Font' }),
         fontSelect,
+    ]));
+
+    // Layout
+    const layoutSelect = el('select', { className: 'tt-select', id: 'setting-layout' });
+    for (const [val, label] of [['compact', 'COMPACT (720px)'], ['default', 'DEFAULT (960px)'], ['wide', 'WIDE (1200px)'], ['full', 'FULL WIDTH']]) {
+        const opt = el('option', { value: val, textContent: label });
+        if (val === (state.settings.layout || 'default')) opt.selected = true;
+        layoutSelect.appendChild(opt);
+    }
+    form.appendChild(el('div', { className: 'settings-row' }, [
+        el('label', { className: 'settings-label', textContent: 'Layout' }),
+        layoutSelect,
     ]));
 
     // Articles per page
@@ -408,6 +435,7 @@ export function renderSettings(state, handlers) {
         el('button', { className: 'tt-btn', textContent: 'SAVE', onClick: () => handlers.saveSettings({
             theme: document.getElementById('setting-theme').value,
             font: document.getElementById('setting-font').value,
+            layout: document.getElementById('setting-layout').value,
             articles_per_page: parseInt(document.getElementById('setting-perpage').value) || 8,
             infinite_scroll: document.getElementById('setting-scroll').checked,
             auto_refresh_seconds: parseInt(document.getElementById('setting-refresh').value) || 0,

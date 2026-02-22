@@ -15,6 +15,7 @@ DEFAULT_SETTINGS = {
     "articles_per_page": 8,
     "auto_refresh_seconds": 0,
     "font": "default",
+    "layout": "default",
     "infinite_scroll": False,
     "notifications_enabled": False,
     "keyword_alerts": [],

@@ -68,10 +68,30 @@ def test_update_keyword_alerts(client):
     assert r.json()["keyword_alerts"] == ["breaking", "climate"]
 
 
+def test_update_layout(client):
+    for layout in ("compact", "wide", "full"):
+        r = client.put("/api/settings", json={"layout": layout})
+        assert r.status_code == 200
+        assert r.json()["layout"] == layout
+
+
+def test_update_invalid_layout(client):
+    r = client.put("/api/settings", json={"layout": "ultra"})
+    assert r.status_code == 422
+
+
+def test_new_fonts(client):
+    for font in ("space-mono", "jetbrains", "press-start", "share-tech"):
+        r = client.put("/api/settings", json={"font": font})
+        assert r.status_code == 200
+        assert r.json()["font"] == font
+
+
 def test_defaults_include_new_fields(client):
     r = client.get("/api/settings")
     data = r.json()
     assert data["font"] == "default"
+    assert data["layout"] == "default"
     assert data["infinite_scroll"] is False
     assert data["notifications_enabled"] is False
     assert data["keyword_alerts"] == []
