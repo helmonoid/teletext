@@ -1,13 +1,19 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app import feeds
+from app import feeds, discovery, opml, feed_health
 
 router = APIRouter()
 
 
 class FeedRequest(BaseModel):
     url: str
+
+class DiscoverRequest(BaseModel):
+    url: str
+
+class OpmlImportRequest(BaseModel):
+    content: str
 
 
 @router.get("/feeds")
@@ -29,3 +35,30 @@ def remove_feed(req: FeedRequest):
     if not removed:
         raise HTTPException(status_code=404, detail="Feed not found")
     return {"ok": True}
+
+
+@router.post("/feeds/discover")
+def discover_feeds_endpoint(req: DiscoverRequest):
+    found = discovery.discover_feeds(req.url)
+    return {"feeds": found}
+
+
+@router.get("/feeds/health")
+def get_feed_health():
+    return {"health": feed_health.get_health()}
+
+
+@router.post("/feeds/opml/import")
+def import_opml_endpoint(req: OpmlImportRequest):
+    urls = opml.import_opml(req.content)
+    imported = 0
+    for url in urls:
+        if feeds.add_feed(url):
+            imported += 1
+    return {"imported": imported, "feeds": feeds.list_feeds()}
+
+
+@router.get("/feeds/opml/export")
+def export_opml_endpoint():
+    xml_content = opml.export_opml(feeds.list_feeds())
+    return {"opml": xml_content}

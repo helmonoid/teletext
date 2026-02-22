@@ -44,3 +44,31 @@ export function getSettings() {
 export function updateSettings(updates) {
     return request('/api/settings', { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify(updates) });
 }
+
+export function getReadList() {
+    return request('/api/read');
+}
+
+export function markRead(url) {
+    return request('/api/read', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ url }) });
+}
+
+export function markUnread(url) {
+    return request('/api/read/delete', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ url }) });
+}
+
+export function discoverFeeds(url) {
+    return request('/api/feeds/discover', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ url }) });
+}
+
+export function getFeedHealth() {
+    return request('/api/feeds/health');
+}
+
+export function importOpml(content) {
+    return request('/api/feeds/opml/import', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ content }) });
+}
+
+export function exportOpml() {
+    return request('/api/feeds/opml/export');
+}

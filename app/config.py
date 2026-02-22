@@ -14,4 +14,8 @@ DEFAULT_SETTINGS = {
     "theme": "dark",
     "articles_per_page": 8,
     "auto_refresh_seconds": 0,
+    "font": "default",
+    "infinite_scroll": False,
+    "notifications_enabled": False,
+    "keyword_alerts": [],
 }

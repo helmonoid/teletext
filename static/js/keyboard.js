@@ -3,12 +3,21 @@ let numberTimeout = null;
 
 export function initKeyboard(handlers) {
     document.addEventListener('keydown', (e) => {
+        // Allow typing in filter input
+        if (e.target.id === 'filter-input') {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                handlers.closeFilter();
+            }
+            return;
+        }
+
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
         if (e.ctrlKey || e.metaKey || e.altKey) return;
 
         const key = e.key.toLowerCase();
 
-        // Number keys: buffer digits, fire after 600ms pause or on Enter
+        // Number keys: buffer digits, fire after 800ms pause or on Enter
         if (/^[0-9]$/.test(e.key)) {
             e.preventDefault();
             numberBuffer += e.key;
@@ -33,6 +42,13 @@ export function initKeyboard(handlers) {
             return;
         }
 
+        // Enter without number buffer: select highlighted article
+        if (e.key === 'Enter' && !numberBuffer) {
+            e.preventDefault();
+            handlers.selectHighlighted();
+            return;
+        }
+
         // Clear number buffer on any non-digit key
         if (numberBuffer) {
             clearTimeout(numberTimeout);
@@ -48,6 +64,9 @@ export function initKeyboard(handlers) {
             case 's': e.preventDefault(); handlers.openSettings(); break;
             case 'f': e.preventDefault(); handlers.openFeedManager(); break;
             case 'escape': e.preventDefault(); handlers.back(); break;
+            case 'arrowdown': e.preventDefault(); handlers.moveHighlight(1); break;
+            case 'arrowup': e.preventDefault(); handlers.moveHighlight(-1); break;
+            case '/': e.preventDefault(); handlers.openFilter(); break;
         }
     });
 }

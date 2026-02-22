@@ -1,3 +1,10 @@
+const FONT_MAP = {
+    'default': "'Courier New', Consolas, 'Liberation Mono', monospace",
+    'vt323': "'VT323', monospace",
+    'ibm-plex': "'IBM Plex Mono', monospace",
+    'fira-code': "'Fira Code', monospace",
+};
+
 export function applyTheme(name) {
     if (name === 'system') {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -5,6 +12,11 @@ export function applyTheme(name) {
     } else {
         document.documentElement.setAttribute('data-theme', name);
     }
+}
+
+export function applyFont(name) {
+    const fontFamily = FONT_MAP[name] || FONT_MAP['default'];
+    document.documentElement.style.setProperty('--font', fontFamily);
 }
 
 export function initThemeListener(getThemeName) {

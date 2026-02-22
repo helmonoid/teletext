@@ -5,6 +5,7 @@ function el(tag, attrs = {}, children = []) {
     for (const [k, v] of Object.entries(attrs)) {
         if (k === 'className') e.className = v;
         else if (k === 'textContent') e.textContent = v;
+        else if (k === 'innerHTML') e.innerHTML = v;
         else if (k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), v);
         else e.setAttribute(k, v);
     }
@@ -33,8 +34,12 @@ export function renderHeader(state) {
         el('span', { className: 'hash', textContent: '####' }),
     ]);
 
+    const pageInfo = state.settings.infinite_scroll
+        ? `${state.articles.length} articles`
+        : `Page ${state.page}/${state.totalPages}`;
+
     const info = el('div', { className: 'header-info' }, [
-        el('span', { className: 'header-page', textContent: `Page ${state.page}/${state.totalPages}` }),
+        el('span', { className: 'header-page', textContent: pageInfo }),
         el('span', { className: 'header-clock', id: 'clock', textContent: formatClock() }),
     ]);
 
@@ -49,7 +54,7 @@ export function renderHeader(state) {
     }
 }
 
-function buildArticleTable(articles, startOffset, handlers) {
+function buildArticleTable(articles, startOffset, handlers, state) {
     const table = el('table', { className: 'article-table' });
 
     const thead = el('thead');
@@ -66,7 +71,11 @@ function buildArticleTable(articles, startOffset, handlers) {
     const tbody = el('tbody');
     articles.forEach((article, i) => {
         const globalIdx = startOffset + i;
-        const row = el('tr', { className: 'article-row', onClick: () => handlers.selectByIndex(globalIdx) }, [
+        const classes = ['article-row'];
+        if (globalIdx === state.highlightIndex) classes.push('highlighted');
+        if (article.read) classes.push('read');
+
+        const row = el('tr', { className: classes.join(' '), onClick: () => handlers.selectByIndex(globalIdx) }, [
             el('td', { className: 'cell-num', textContent: String(globalIdx + 1) }),
             el('td', {
                 className: article.bookmarked ? 'cell-star bookmarked' : 'cell-star',
@@ -80,6 +89,31 @@ function buildArticleTable(articles, startOffset, handlers) {
     });
     table.appendChild(tbody);
     return table;
+}
+
+function renderFilterBar(state, handlers) {
+    if (!state.filterMode) return null;
+    const bar = el('div', { className: 'filter-bar' }, [
+        el('span', { className: 'filter-label', textContent: 'FILTER: ' }),
+        el('input', {
+            className: 'filter-input', id: 'filter-input', type: 'text',
+            value: state.filterText, placeholder: 'type to filter...',
+            onInput: (e) => handlers.setFilter(e.target.value),
+            onKeydown: (e) => { if (e.key === 'Escape') handlers.closeFilter(); },
+        }),
+        el('button', { className: 'tt-btn filter-close', textContent: '\u2715', onClick: () => handlers.closeFilter() }),
+    ]);
+    return bar;
+}
+
+function getFilteredArticles(state) {
+    if (!state.filterText) return state.articles;
+    const q = state.filterText.toLowerCase();
+    return state.articles.filter(a =>
+        (a.title || '').toLowerCase().includes(q) ||
+        (a.source || '').toLowerCase().includes(q) ||
+        (a.summary || '').toLowerCase().includes(q)
+    );
 }
 
 export function renderArticleList(state, handlers) {
@@ -103,11 +137,35 @@ export function renderArticleList(state, handlers) {
         return;
     }
 
-    const perPage = state.settings.articles_per_page || 8;
-    const start = (state.page - 1) * perPage;
-    const pageArticles = state.articles.slice(start, start + perPage);
+    // Filter bar
+    const filterBar = renderFilterBar(state, handlers);
+    if (filterBar) content.appendChild(filterBar);
 
-    content.appendChild(buildArticleTable(pageArticles, start, handlers));
+    const filtered = getFilteredArticles(state);
+
+    if (filtered.length === 0 && state.filterText) {
+        content.appendChild(el('div', { className: 'empty-state', textContent: 'No articles match filter.' }));
+        return;
+    }
+
+    if (state.settings.infinite_scroll) {
+        // Infinite scroll: show all filtered articles
+        content.appendChild(buildArticleTable(filtered, 0, handlers, state));
+    } else {
+        // Paginated
+        const perPage = state.settings.articles_per_page || 8;
+        const start = (state.page - 1) * perPage;
+        const pageArticles = filtered.slice(start, start + perPage);
+        content.appendChild(buildArticleTable(pageArticles, start, handlers, state));
+    }
+
+    // Focus filter input if filter mode
+    if (state.filterMode) {
+        setTimeout(() => {
+            const input = document.getElementById('filter-input');
+            if (input) input.focus();
+        }, 0);
+    }
 }
 
 export function renderBookmarks(state, handlers) {
@@ -129,9 +187,7 @@ export function renderBookmarks(state, handlers) {
         return;
     }
 
-    // Map bookmarked articles back to their global indices for selection
     const table = el('table', { className: 'article-table' });
-
     const thead = el('thead');
     thead.appendChild(el('tr', {}, [
         el('th', { className: 'col-num', textContent: '#' }),
@@ -145,7 +201,10 @@ export function renderBookmarks(state, handlers) {
     const tbody = el('tbody');
     bookmarkedArticles.forEach((article, i) => {
         const globalIdx = state.articles.indexOf(article);
-        const row = el('tr', { className: 'article-row', onClick: () => handlers.selectByIndex(globalIdx) }, [
+        const classes = ['article-row'];
+        if (article.read) classes.push('read');
+
+        const row = el('tr', { className: classes.join(' '), onClick: () => handlers.selectByIndex(globalIdx) }, [
             el('td', { className: 'cell-num', textContent: String(i + 1) }),
             el('td', { className: 'cell-star bookmarked', textContent: '\u2605' }),
             el('td', { className: 'cell-title', textContent: article.title || 'Untitled' }),
@@ -175,6 +234,10 @@ export function renderArticleDetail(state, handlers) {
         '    ',
         el('span', { className: 'detail-meta-label', textContent: 'Date: ' }),
         el('span', { className: 'detail-meta-value', textContent: article.date || 'N/A' }),
+        '    ',
+        article.read
+            ? el('span', { className: 'read-badge', textContent: '\u2713 READ' })
+            : el('span', { className: 'unread-badge', textContent: '\u25CF NEW' }),
     ]);
     view.appendChild(meta);
 
@@ -195,6 +258,11 @@ export function renderArticleDetail(state, handlers) {
             textContent: article.bookmarked ? '\u2605 UNBOOKMARK' : '\u2606 BOOKMARK',
             onClick: () => handlers.toggleBookmarkFor(article),
         }),
+        el('button', {
+            className: 'tt-btn',
+            textContent: article.read ? '\u2713 MARK UNREAD' : '\u25CF MARK READ',
+            onClick: () => handlers.toggleReadFor(article),
+        }),
         el('button', { className: 'tt-btn', textContent: '\u2190 BACK', onClick: handlers.back }),
     ]);
     view.appendChild(actions);
@@ -206,7 +274,6 @@ export function renderFooter(state) {
     const footer = document.getElementById('footer');
     footer.innerHTML = '';
 
-    const numberIndicator = document.getElementById('number-input');
     if (!document.getElementById('number-input')) {
         const ni = el('div', { className: 'number-input hidden', id: 'number-input' });
         footer.appendChild(ni);
@@ -215,12 +282,13 @@ export function renderFooter(state) {
     let shortcuts;
     if (state.view === 'list') {
         shortcuts = [
-            ['N', 'Next'], ['P', 'Prev'], ['#', 'Go To'], ['R', 'Refresh'],
+            ['N', 'Next'], ['P', 'Prev'], ['#', 'Go To'], ['\u2191\u2193', 'Nav'],
+            ['/', 'Filter'], ['R', 'Refresh'],
             ['B', 'Bookmarks'], ['S', 'Settings'], ['F', 'Feeds'],
         ];
     } else if (state.view === 'bookmarks') {
         shortcuts = [
-            ['ESC', 'Back'], ['R', 'Refresh'], ['S', 'Settings'], ['F', 'Feeds'],
+            ['ESC', 'Back'], ['\u2191\u2193', 'Nav'], ['R', 'Refresh'], ['S', 'Settings'], ['F', 'Feeds'],
         ];
     } else {
         shortcuts = [
@@ -264,7 +332,7 @@ export function renderSettings(state, handlers) {
 
     // Theme
     const themeSelect = el('select', { className: 'tt-select', id: 'setting-theme' });
-    for (const t of ['dark', 'light', 'system', 'amber', 'green']) {
+    for (const t of ['dark', 'light', 'system', 'amber', 'green', 'blue', 'white']) {
         const opt = el('option', { value: t, textContent: t.toUpperCase() });
         if (t === state.settings.theme) opt.selected = true;
         themeSelect.appendChild(opt);
@@ -272,6 +340,18 @@ export function renderSettings(state, handlers) {
     form.appendChild(el('div', { className: 'settings-row' }, [
         el('label', { className: 'settings-label', textContent: 'Theme' }),
         themeSelect,
+    ]));
+
+    // Font
+    const fontSelect = el('select', { className: 'tt-select', id: 'setting-font' });
+    for (const [val, label] of [['default', 'DEFAULT'], ['vt323', 'VT323'], ['ibm-plex', 'IBM PLEX MONO'], ['fira-code', 'FIRA CODE']]) {
+        const opt = el('option', { value: val, textContent: label });
+        if (val === state.settings.font) opt.selected = true;
+        fontSelect.appendChild(opt);
+    }
+    form.appendChild(el('div', { className: 'settings-row' }, [
+        el('label', { className: 'settings-label', textContent: 'Font' }),
+        fontSelect,
     ]));
 
     // Articles per page
@@ -282,6 +362,14 @@ export function renderSettings(state, handlers) {
     form.appendChild(el('div', { className: 'settings-row' }, [
         el('label', { className: 'settings-label', textContent: 'Articles/Page' }),
         perPageInput,
+    ]));
+
+    // Infinite scroll
+    const scrollCheck = el('input', { type: 'checkbox', id: 'setting-scroll', className: 'tt-checkbox' });
+    if (state.settings.infinite_scroll) scrollCheck.checked = true;
+    form.appendChild(el('div', { className: 'settings-row' }, [
+        el('label', { className: 'settings-label', textContent: 'Infinite Scroll' }),
+        scrollCheck,
     ]));
 
     // Auto-refresh
@@ -297,11 +385,35 @@ export function renderSettings(state, handlers) {
         refreshSelect,
     ]));
 
+    // Notifications
+    const notifCheck = el('input', { type: 'checkbox', id: 'setting-notif', className: 'tt-checkbox' });
+    if (state.settings.notifications_enabled) notifCheck.checked = true;
+    form.appendChild(el('div', { className: 'settings-row' }, [
+        el('label', { className: 'settings-label', textContent: 'Notifications' }),
+        notifCheck,
+    ]));
+
+    // Keyword alerts
+    const keywordsInput = el('input', {
+        className: 'tt-input', type: 'text', id: 'setting-keywords',
+        value: (state.settings.keyword_alerts || []).join(', '),
+        placeholder: 'e.g. breaking, climate, tech',
+    });
+    form.appendChild(el('div', { className: 'settings-row' }, [
+        el('label', { className: 'settings-label', textContent: 'Alert Keywords' }),
+        keywordsInput,
+    ]));
+
     const actions = el('div', { className: 'settings-actions' }, [
         el('button', { className: 'tt-btn', textContent: 'SAVE', onClick: () => handlers.saveSettings({
             theme: document.getElementById('setting-theme').value,
+            font: document.getElementById('setting-font').value,
             articles_per_page: parseInt(document.getElementById('setting-perpage').value) || 8,
+            infinite_scroll: document.getElementById('setting-scroll').checked,
             auto_refresh_seconds: parseInt(document.getElementById('setting-refresh').value) || 0,
+            notifications_enabled: document.getElementById('setting-notif').checked,
+            keyword_alerts: document.getElementById('setting-keywords').value
+                .split(',').map(s => s.trim()).filter(Boolean),
         })}),
         el('button', { className: 'tt-btn', textContent: 'CLOSE', onClick: handlers.closeModal }),
     ]);
@@ -319,15 +431,32 @@ export function renderFeedManager(state, handlers) {
 
     modal.appendChild(el('div', { className: 'modal-title', textContent: 'FEED MANAGER' }));
 
+    // Feed list with health indicators
     const list = el('ul', { className: 'feed-list' });
+    const health = state.feedHealth || {};
     for (const url of state.feeds) {
+        const h = health[url];
+        let statusIcon = '\u2022'; // bullet
+        let statusClass = 'feed-status-unknown';
+        if (h) {
+            if (h.error_count > 0) {
+                statusIcon = '\u2716'; // X
+                statusClass = 'feed-status-error';
+            } else if (h.last_success) {
+                statusIcon = '\u2714'; // checkmark
+                statusClass = 'feed-status-ok';
+            }
+        }
         list.appendChild(el('li', { className: 'feed-item' }, [
+            el('span', { className: `feed-status ${statusClass}`, textContent: statusIcon }),
             el('span', { className: 'feed-url', textContent: url }),
+            h && h.article_count ? el('span', { className: 'feed-count', textContent: `(${h.article_count})` }) : null,
             el('button', { className: 'tt-btn danger', textContent: 'DEL', onClick: () => handlers.deleteFeed(url) }),
         ]));
     }
     modal.appendChild(list);
 
+    // Add feed row
     const addRow = el('div', { className: 'feed-add-row' }, [
         el('input', { className: 'tt-input', id: 'new-feed-url', type: 'text', placeholder: 'https://example.com/rss.xml' }),
         el('button', { className: 'tt-btn', textContent: 'ADD', onClick: () => {
@@ -337,10 +466,51 @@ export function renderFeedManager(state, handlers) {
     ]);
     modal.appendChild(addRow);
 
-    const actions = el('div', { className: 'feed-actions' }, [
+    // Feed discovery
+    const discoverRow = el('div', { className: 'feed-add-row' }, [
+        el('input', { className: 'tt-input', id: 'discover-url', type: 'text', placeholder: 'https://example.com (auto-discover RSS)' }),
+        el('button', { className: 'tt-btn', textContent: 'DISCOVER', onClick: () => {
+            const input = document.getElementById('discover-url');
+            if (input.value.trim()) handlers.discoverFeeds(input.value.trim());
+        }}),
+    ]);
+    modal.appendChild(discoverRow);
+
+    // Discovered feeds list (shown after discovery)
+    if (state.discoveredFeeds && state.discoveredFeeds.length > 0) {
+        const discList = el('ul', { className: 'feed-list discovered' });
+        for (const feed of state.discoveredFeeds) {
+            discList.appendChild(el('li', { className: 'feed-item discovered-item' }, [
+                el('span', { className: 'feed-url', textContent: `${feed.title} - ${feed.url}` }),
+                el('button', { className: 'tt-btn', textContent: 'ADD', onClick: () => handlers.addFeed(feed.url) }),
+            ]));
+        }
+        modal.appendChild(discList);
+    }
+
+    // OPML import/export
+    const opmlRow = el('div', { className: 'feed-opml-row' }, [
+        el('button', { className: 'tt-btn', textContent: 'IMPORT OPML', onClick: () => handlers.importOpml() }),
+        el('button', { className: 'tt-btn', textContent: 'EXPORT OPML', onClick: () => handlers.exportOpml() }),
+    ]);
+    modal.appendChild(opmlRow);
+
+    // Hidden file input for OPML import
+    const fileInput = el('input', { type: 'file', id: 'opml-file-input', accept: '.opml,.xml', className: 'hidden' });
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => handlers.importOpmlContent(ev.target.result);
+            reader.readAsText(file);
+        }
+    });
+    modal.appendChild(fileInput);
+
+    const feedActions = el('div', { className: 'feed-actions' }, [
         el('button', { className: 'tt-btn', textContent: 'CLOSE', onClick: handlers.closeModal }),
     ]);
-    modal.appendChild(actions);
+    modal.appendChild(feedActions);
 
     modal.classList.remove('hidden');
     overlay.classList.remove('hidden');
@@ -363,14 +533,59 @@ export function showToast(message) {
     }, 2500);
 }
 
+export function updateFavicon(unreadCount) {
+    let link = document.querySelector("link[rel='icon']");
+    if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+
+    // Draw base icon (TV shape)
+    ctx.fillStyle = '#0000cc';
+    ctx.fillRect(2, 4, 28, 24);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(4, 6, 24, 20);
+    ctx.fillStyle = '#00ffff';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('TT', 16, 20);
+
+    // Badge with unread count
+    if (unreadCount > 0) {
+        ctx.fillStyle = '#ff0000';
+        ctx.beginPath();
+        ctx.arc(26, 8, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(unreadCount > 99 ? '99+' : String(unreadCount), 26, 8);
+    }
+
+    link.href = canvas.toDataURL('image/png');
+}
+
 export function render(state, handlers) {
     renderHeader(state);
-    if (state.view === 'detail') {
-        renderArticleDetail(state, handlers);
-    } else if (state.view === 'bookmarks') {
-        renderBookmarks(state, handlers);
-    } else {
-        renderArticleList(state, handlers);
-    }
-    renderFooter(state);
+    const content = document.getElementById('content');
+    // Page transition
+    content.classList.add('page-transition');
+    requestAnimationFrame(() => {
+        if (state.view === 'detail') {
+            renderArticleDetail(state, handlers);
+        } else if (state.view === 'bookmarks') {
+            renderBookmarks(state, handlers);
+        } else {
+            renderArticleList(state, handlers);
+        }
+        renderFooter(state);
+        requestAnimationFrame(() => content.classList.remove('page-transition'));
+    });
 }

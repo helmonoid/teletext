@@ -3,7 +3,8 @@ import os
 
 from app import config
 
-VALID_THEMES = ["dark", "light", "system", "amber", "green"]
+VALID_THEMES = ["dark", "light", "system", "amber", "green", "blue", "white"]
+VALID_FONTS = ["default", "vt323", "ibm-plex", "fira-code"]
 
 
 def _get_settings_path():
@@ -84,6 +85,38 @@ def update_settings(updates: dict) -> dict:
                 f"auto_refresh_seconds must be >= 0, got {auto_refresh_seconds}"
             )
         current["auto_refresh_seconds"] = auto_refresh_seconds
+
+    if "font" in updates:
+        font = updates["font"]
+        if font not in VALID_FONTS:
+            raise ValueError(
+                f"Invalid font '{font}'. Must be one of: {', '.join(VALID_FONTS)}"
+            )
+        current["font"] = font
+
+    if "infinite_scroll" in updates:
+        if not isinstance(updates["infinite_scroll"], bool):
+            raise ValueError(
+                f"infinite_scroll must be a boolean, got '{updates['infinite_scroll']}'"
+            )
+        current["infinite_scroll"] = updates["infinite_scroll"]
+
+    if "notifications_enabled" in updates:
+        if not isinstance(updates["notifications_enabled"], bool):
+            raise ValueError(
+                f"notifications_enabled must be a boolean, got '{updates['notifications_enabled']}'"
+            )
+        current["notifications_enabled"] = updates["notifications_enabled"]
+
+    if "keyword_alerts" in updates:
+        keyword_alerts = updates["keyword_alerts"]
+        if not isinstance(keyword_alerts, list):
+            raise ValueError(
+                f"keyword_alerts must be a list, got '{type(keyword_alerts).__name__}'"
+            )
+        if not all(isinstance(k, str) for k in keyword_alerts):
+            raise ValueError("keyword_alerts must be a list of strings")
+        current["keyword_alerts"] = keyword_alerts
 
     _save_settings(current)
     return current

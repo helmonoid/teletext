@@ -11,7 +11,7 @@ from time import mktime
 
 import feedparser
 
-from app import feeds
+from app import feed_health, feeds
 
 REQUEST_TIMEOUT = 15
 
@@ -107,8 +107,17 @@ def fetch_articles() -> list[dict]:
 
     for feed_url in feeds.list_feeds():
         try:
-            all_articles.extend(_fetch_single_feed(feed_url))
-        except Exception:
+            articles_from_feed = _fetch_single_feed(feed_url)
+            all_articles.extend(articles_from_feed)
+            try:
+                feed_health.record_success(feed_url, len(articles_from_feed))
+            except Exception:
+                pass
+        except Exception as e:
+            try:
+                feed_health.record_error(feed_url, str(e))
+            except Exception:
+                pass
             continue
 
     all_articles.sort(
