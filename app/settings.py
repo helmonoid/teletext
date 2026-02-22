@@ -1,11 +1,13 @@
 import json
 import os
+import re
 
 from app import config
 
 VALID_THEMES = ["dark", "light", "system", "amber", "green", "blue", "white"]
 VALID_FONTS = ["default", "vt323", "ibm-plex", "fira-code", "space-mono", "jetbrains", "press-start", "share-tech"]
-VALID_LAYOUTS = ["compact", "default", "wide", "full"]
+LAYOUT_PRESETS = {"compact": "720px", "default": "960px", "wide": "1200px", "full": "100%"}
+_LAYOUT_RE = re.compile(r"^\d{2,4}(px|em|rem|vw|%)$")
 
 
 def _get_settings_path():
@@ -96,10 +98,11 @@ def update_settings(updates: dict) -> dict:
         current["font"] = font
 
     if "layout" in updates:
-        layout = updates["layout"]
-        if layout not in VALID_LAYOUTS:
+        layout = str(updates["layout"]).strip()
+        if layout not in LAYOUT_PRESETS and not _LAYOUT_RE.match(layout):
             raise ValueError(
-                f"Invalid layout '{layout}'. Must be one of: {', '.join(VALID_LAYOUTS)}"
+                f"Invalid layout '{layout}'. Use a preset ({', '.join(LAYOUT_PRESETS)}) "
+                f"or a CSS value like 1400px, 80vw, 100%"
             )
         current["layout"] = layout
 

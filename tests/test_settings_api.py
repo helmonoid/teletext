@@ -75,6 +75,13 @@ def test_update_layout(client):
         assert r.json()["layout"] == layout
 
 
+def test_update_custom_layout(client):
+    for layout in ("1400px", "80vw", "50em", "100%"):
+        r = client.put("/api/settings", json={"layout": layout})
+        assert r.status_code == 200
+        assert r.json()["layout"] == layout
+
+
 def test_update_invalid_layout(client):
     r = client.put("/api/settings", json={"layout": "ultra"})
     assert r.status_code == 422

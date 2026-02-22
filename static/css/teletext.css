@@ -366,11 +366,11 @@ html, body {
     border-bottom: 2px solid var(--border);
 }
 
-.article-table th.col-num   { width: 36px; text-align: center; }
-.article-table th.col-star  { width: 30px; text-align: center; }
-.article-table th.col-title { }
-.article-table th.col-source { width: 140px; }
-.article-table th.col-date  { width: 130px; }
+.article-table th.col-num   { width: 3.5%; min-width: 32px; text-align: center; }
+.article-table th.col-star  { width: 3%; min-width: 28px; text-align: center; }
+.article-table th.col-title { width: 48%; }
+.article-table th.col-source { width: 23%; }
+.article-table th.col-date  { width: 22.5%; }
 
 .article-table td {
     padding: 5px 6px;
@@ -706,6 +706,36 @@ html, body {
     gap: 8px;
     padding-top: 8px;
     border-top: 1px solid var(--separator);
+}
+
+/* ---- Layout control (text input + preset buttons) ---- */
+.layout-control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 140px;
+}
+
+.layout-control .tt-input {
+    width: 100%;
+    min-width: 0;
+}
+
+.layout-presets {
+    display: flex;
+    gap: 4px;
+}
+
+.preset-btn {
+    padding: 3px 8px !important;
+    font-size: 0.75em !important;
+    min-width: auto;
+    letter-spacing: 0;
+}
+
+.preset-btn.active {
+    outline: 2px solid var(--accent3);
+    outline-offset: -2px;
 }
 
 /* ---- Feed manager ---- */

@@ -370,15 +370,25 @@ export function renderSettings(state, handlers) {
     ]));
 
     // Layout
-    const layoutSelect = el('select', { className: 'tt-select', id: 'setting-layout' });
-    for (const [val, label] of [['compact', 'COMPACT (720px)'], ['default', 'DEFAULT (960px)'], ['wide', 'WIDE (1200px)'], ['full', 'FULL WIDTH']]) {
-        const opt = el('option', { value: val, textContent: label });
-        if (val === (state.settings.layout || 'default')) opt.selected = true;
-        layoutSelect.appendChild(opt);
+    const layoutInput = el('input', {
+        className: 'tt-input', type: 'text', id: 'setting-layout',
+        value: state.settings.layout || 'default',
+        placeholder: 'e.g. 1400px, 80vw, 100%',
+    });
+    const layoutPresets = el('div', { className: 'layout-presets' });
+    for (const [val, label] of [['compact', '720'], ['default', '960'], ['wide', '1200'], ['full', 'Full']]) {
+        layoutPresets.appendChild(el('button', {
+            className: 'tt-btn preset-btn' + ((state.settings.layout || 'default') === val ? ' active' : ''),
+            textContent: label,
+            onClick: (e) => {
+                e.preventDefault();
+                document.getElementById('setting-layout').value = val;
+            },
+        }));
     }
     form.appendChild(el('div', { className: 'settings-row' }, [
         el('label', { className: 'settings-label', textContent: 'Layout' }),
-        layoutSelect,
+        el('div', { className: 'layout-control' }, [layoutInput, layoutPresets]),
     ]));
 
     // Articles per page

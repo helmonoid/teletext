@@ -9,7 +9,7 @@ const FONT_MAP = {
     'share-tech': "'Share Tech Mono', monospace",
 };
 
-const LAYOUT_MAP = {
+const LAYOUT_PRESETS = {
     'compact': '720px',
     'default': '960px',
     'wide': '1200px',
@@ -30,8 +30,8 @@ export function applyFont(name) {
     document.documentElement.style.setProperty('--font', fontFamily);
 }
 
-export function applyLayout(name) {
-    const maxWidth = LAYOUT_MAP[name] || LAYOUT_MAP['default'];
+export function applyLayout(value) {
+    const maxWidth = LAYOUT_PRESETS[value] || value || LAYOUT_PRESETS['default'];
     document.documentElement.style.setProperty('--max-width', maxWidth);
 }
 
