@@ -38,7 +38,7 @@ def test_articles_have_correct_keys(mock_list, mock_parse, client):
     ])
     r = client.get("/api/articles")
     article = r.json()["articles"][0]
-    for key in ("title", "source", "date", "summary", "url", "bookmarked", "read"):
+    for key in ("title", "source", "source_url", "date", "summary", "url", "bookmarked", "read"):
         assert key in article
 
 

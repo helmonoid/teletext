@@ -1,4 +1,5 @@
 const state = {
+    allArticles: [],           // All articles from API (before feed filtering)
     articles: [],
     page: 1,
     totalPages: 1,

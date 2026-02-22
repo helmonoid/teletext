@@ -57,10 +57,6 @@ export function markUnread(url) {
     return request('/api/read/delete', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ url }) });
 }
 
-export function toggleFeed(url) {
-    return request('/api/feeds/toggle', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ url }) });
-}
-
 export function discoverFeeds(url) {
     return request('/api/feeds/discover', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ url }) });
 }

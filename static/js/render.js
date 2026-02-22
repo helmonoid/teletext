@@ -1,3 +1,5 @@
+import { getDisabledFeeds } from './storage.js';
+
 let clockInterval = null;
 
 function el(tag, attrs = {}, children = []) {
@@ -472,9 +474,10 @@ export function renderFeedManager(state, handlers) {
     // Feed list with health indicators and toggle
     const list = el('ul', { className: 'feed-list' });
     const health = state.feedHealth || {};
+    const disabled = getDisabledFeeds();
     for (const feed of state.feeds) {
-        const url = feed.url || feed;
-        const active = feed.active !== false;
+        const url = typeof feed === 'string' ? feed : feed.url;
+        const active = !disabled.has(url);
         const h = health[url];
         let statusIcon = '\u2022'; // bullet
         let statusClass = 'feed-status-unknown';

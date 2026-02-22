@@ -34,6 +34,12 @@ function prevPage() {
     if (s.page > 1) setState({ page: s.page - 1, highlightIndex: -1 });
 }
 
+function getVisibleArticles(articles) {
+    const disabled = storage.getDisabledFeeds();
+    if (disabled.size === 0) return articles;
+    return articles.filter(a => !disabled.has(a.source_url || ''));
+}
+
 async function refresh() {
     const s = getState();
     const prevUrls = s.articles.map(a => a.url);
@@ -41,24 +47,39 @@ async function refresh() {
     try {
         const data = await api.fetchArticles();
         storage.enrichArticles(data.articles);
+        const visible = getVisibleArticles(data.articles);
         const perPage = getState().settings.articles_per_page || 8;
         setState({
-            articles: data.articles,
-            totalPages: Math.max(1, Math.ceil(data.count / perPage)),
+            allArticles: data.articles,
+            articles: visible,
+            totalPages: Math.max(1, Math.ceil(visible.length / perPage)),
             page: 1,
             loading: false,
             highlightIndex: -1,
             previousArticleUrls: prevUrls,
         });
         // Check keyword alerts for new articles
-        checkAlerts(data.articles, prevUrls);
+        checkAlerts(visible, prevUrls);
         // Update favicon with unread count
-        const unread = data.articles.filter(a => !a.read).length;
+        const unread = visible.filter(a => !a.read).length;
         updateFavicon(unread);
     } catch (e) {
         setState({ loading: false });
         showToast('FETCH FAILED');
     }
+}
+
+function refilterArticles() {
+    const s = getState();
+    if (!s.allArticles) return;
+    const visible = getVisibleArticles(s.allArticles);
+    const perPage = s.settings.articles_per_page || 8;
+    setState({
+        articles: visible,
+        totalPages: Math.max(1, Math.ceil(visible.length / perPage)),
+        page: 1,
+        highlightIndex: -1,
+    });
 }
 
 function checkAlerts(articles, prevUrls) {
@@ -238,11 +259,7 @@ function setFilter(text) {
     });
 }
 
-async function openSettings() {
-    try {
-        const settings = await api.getSettings();
-        setState({ settings });
-    } catch (e) { /* use cached */ }
+function openSettings() {
     renderSettings(getState(), handlers);
 }
 
@@ -263,24 +280,21 @@ function doCloseModal() {
 
 window.__closeModal = doCloseModal;
 
-async function saveSettings(updates) {
-    try {
-        const result = await api.updateSettings(updates);
-        setState({ settings: result });
-        applyTheme(result.theme);
-        applyFont(result.font || 'default');
-        applyLayout(result.layout || 'default');
-        setupAutoRefresh(result.auto_refresh_seconds);
-        const perPage = result.articles_per_page || 8;
-        setState({ totalPages: Math.max(1, Math.ceil(getState().articles.length / perPage)), page: 1 });
-        doCloseModal();
-        showToast('SETTINGS SAVED');
-        // Request notification permission if enabled
-        if (result.notifications_enabled) {
-            notifications.requestPermission();
-        }
-    } catch (e) {
-        showToast('SAVE FAILED');
+function saveSettings(updates) {
+    // Save to localStorage (per-browser)
+    storage.saveLocalSettings(updates);
+    setState({ settings: updates });
+    applyTheme(updates.theme);
+    applyFont(updates.font || 'default');
+    applyLayout(updates.layout || 'default');
+    setupAutoRefresh(updates.auto_refresh_seconds);
+    const perPage = updates.articles_per_page || 8;
+    setState({ totalPages: Math.max(1, Math.ceil(getState().articles.length / perPage)), page: 1 });
+    doCloseModal();
+    showToast('SETTINGS SAVED');
+    // Request notification permission if enabled
+    if (updates.notifications_enabled) {
+        notifications.requestPermission();
     }
 }
 
@@ -296,16 +310,11 @@ async function deleteFeed(url) {
     }
 }
 
-async function doToggleFeed(url) {
-    try {
-        const result = await api.toggleFeed(url);
-        const data = await api.getFeeds();
-        setState({ feeds: data.feeds });
-        renderFeedManager(getState(), handlers);
-        showToast(result.active ? 'FEED ENABLED' : 'FEED DISABLED');
-    } catch (e) {
-        showToast('TOGGLE FAILED');
-    }
+function doToggleFeed(url) {
+    const active = storage.toggleFeedDisabled(url);
+    showToast(active ? 'FEED ENABLED' : 'FEED DISABLED');
+    refilterArticles();
+    renderFeedManager(getState(), handlers);
 }
 
 async function doAddFeed(url) {
@@ -379,17 +388,26 @@ function setupAutoRefresh(seconds) {
 subscribe((state) => render(state, handlers));
 
 async function init() {
-    try {
-        const settings = await api.getSettings();
-        setState({ settings });
-        applyTheme(settings.theme);
-        applyFont(settings.font || 'default');
-        applyLayout(settings.layout || 'default');
-        setupAutoRefresh(settings.auto_refresh_seconds);
-        if (settings.notifications_enabled) {
-            notifications.requestPermission();
+    // Load settings: localStorage first, then API defaults as fallback
+    let settings;
+    const localSettings = storage.getLocalSettings();
+    if (localSettings) {
+        settings = localSettings;
+    } else {
+        try {
+            settings = await api.getSettings();
+        } catch (e) {
+            settings = getState().settings;
         }
-    } catch (e) { /* use defaults */ }
+    }
+    setState({ settings });
+    applyTheme(settings.theme);
+    applyFont(settings.font || 'default');
+    applyLayout(settings.layout || 'default');
+    setupAutoRefresh(settings.auto_refresh_seconds);
+    if (settings.notifications_enabled) {
+        notifications.requestPermission();
+    }
 
     initThemeListener(() => getState().settings.theme);
     initKeyboard({

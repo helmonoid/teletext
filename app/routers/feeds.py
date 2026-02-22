@@ -37,14 +37,6 @@ def remove_feed(req: FeedRequest):
     return {"ok": True}
 
 
-@router.post("/feeds/toggle")
-def toggle_feed(req: FeedRequest):
-    active = feeds.toggle_feed(req.url)
-    if active is None:
-        raise HTTPException(status_code=404, detail="Feed not found")
-    return {"ok": True, "active": active}
-
-
 @router.post("/feeds/discover")
 def discover_feeds_endpoint(req: DiscoverRequest):
     found = discovery.discover_feeds(req.url)
@@ -68,6 +60,5 @@ def import_opml_endpoint(req: OpmlImportRequest):
 
 @router.get("/feeds/opml/export")
 def export_opml_endpoint():
-    all_urls = [f["url"] for f in feeds.list_feeds()]
-    xml_content = opml.export_opml(all_urls)
+    xml_content = opml.export_opml(feeds.list_feeds())
     return {"opml": xml_content}

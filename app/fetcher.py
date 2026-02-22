@@ -87,6 +87,7 @@ def _fetch_single_feed(url: str) -> list[dict]:
             {
                 "title": title.strip(),
                 "source": feed_title.strip(),
+                "source_url": url,
                 "date": _format_date(dt),
                 "summary": summary,
                 "url": link.strip(),
@@ -105,7 +106,7 @@ def fetch_articles() -> list[dict]:
     """
     all_articles: list[dict] = []
 
-    for feed_url in feeds.list_active_feed_urls():
+    for feed_url in feeds.list_feeds():
         try:
             articles_from_feed = _fetch_single_feed(feed_url)
             all_articles.extend(articles_from_feed)

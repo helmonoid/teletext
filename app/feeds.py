@@ -9,12 +9,12 @@ def _get_feeds_path():
     return os.path.join(config.DATA_DIR, "feeds.json")
 
 
-def _migrate(data):
-    """Convert old format (list of URL strings) to new format (list of dicts)."""
+def _normalize(data):
+    """Normalize feeds to a list of URL strings (handles old object format)."""
     if not data:
         return data
-    if isinstance(data[0], str):
-        return [{"url": url, "active": True} for url in data]
+    if isinstance(data[0], dict):
+        return [f["url"] for f in data if "url" in f]
     return data
 
 
@@ -25,14 +25,13 @@ def _load_feeds():
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
             if isinstance(data, list):
-                return _migrate(data)
-            return _migrate(config.DEFAULT_FEEDS[:])
+                return _normalize(data)
+            return config.DEFAULT_FEEDS[:]
     except FileNotFoundError:
-        feeds = _migrate(config.DEFAULT_FEEDS[:])
-        _save_feeds(feeds)
-        return feeds
+        _save_feeds(config.DEFAULT_FEEDS[:])
+        return config.DEFAULT_FEEDS[:]
     except (json.JSONDecodeError, IOError, OSError):
-        return _migrate(config.DEFAULT_FEEDS[:])
+        return config.DEFAULT_FEEDS[:]
 
 
 def _save_feeds(feeds):
@@ -47,50 +46,24 @@ def _save_feeds(feeds):
         return False
 
 
-def _find(feeds, url):
-    """Find a feed dict by URL. Returns (index, feed_dict) or (-1, None)."""
-    for i, f in enumerate(feeds):
-        if f["url"] == url:
-            return i, f
-    return -1, None
-
-
 def add_feed(url):
     """Add a feed URL. Returns True if added, False if already present."""
     feeds = _load_feeds()
-    idx, _ = _find(feeds, url)
-    if idx >= 0:
+    if url in feeds:
         return False
-    feeds.append({"url": url, "active": True})
+    feeds.append(url)
     return _save_feeds(feeds)
 
 
 def remove_feed(url):
     """Remove a feed URL. Returns True if removed, False if not found."""
     feeds = _load_feeds()
-    idx, _ = _find(feeds, url)
-    if idx < 0:
+    if url not in feeds:
         return False
-    feeds.pop(idx)
+    feeds.remove(url)
     return _save_feeds(feeds)
 
 
-def toggle_feed(url):
-    """Toggle a feed's active status. Returns new active state, or None if not found."""
-    feeds = _load_feeds()
-    idx, feed = _find(feeds, url)
-    if idx < 0:
-        return None
-    feed["active"] = not feed.get("active", True)
-    _save_feeds(feeds)
-    return feed["active"]
-
-
 def list_feeds():
-    """Return a list of feed dicts [{url, active}, ...] from feeds.json."""
+    """Return a list of feed URL strings from feeds.json."""
     return _load_feeds()
-
-
-def list_active_feed_urls():
-    """Return a list of URL strings for active feeds only."""
-    return [f["url"] for f in _load_feeds() if f.get("active", True)]

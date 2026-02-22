@@ -18,8 +18,7 @@ def test_import_opml(client):
     assert r.status_code == 200
     data = r.json()
     assert data["imported"] == 1
-    urls = [f["url"] for f in data["feeds"]]
-    assert "https://new-feed.example.com/rss" in urls
+    assert "https://new-feed.example.com/rss" in data["feeds"]
 
 
 def test_import_opml_duplicate(client):
