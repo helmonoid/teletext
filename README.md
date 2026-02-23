@@ -31,7 +31,7 @@ Open http://localhost:8000
 - 8 monospace fonts from Google Fonts
 - Custom layout width (presets or any CSS value)
 - RSS feed auto-discovery from any website URL
-- Feed active/inactive toggle (disable feeds without deleting them)
+- Per-user feed toggling (disable feeds without deleting them, stored in localStorage)
 - OPML import/export for feed management
 - Feed health monitoring (success/error indicators)
 - Bookmark and read/unread tracking (per-browser via localStorage)
@@ -125,6 +125,8 @@ OPML is a standard XML format for exchanging RSS feed lists between readers.
 | `F` | Open feed manager |
 | `ESC` | Back / close modal / close filter |
 
+All shortcut badges in the footer are also clickable/tappable for tablet and mobile use.
+
 ## Data Persistence
 
 **Server-side** (in `./data/`, bind-mounted in Docker):
@@ -143,8 +145,10 @@ OPML is a standard XML format for exchanging RSS feed lists between readers.
 |-----|----------|
 | `teletext_bookmarks` | Bookmarked article URLs |
 | `teletext_read` | Read article URLs |
+| `teletext_disabled_feeds` | Feed URLs toggled off by this user |
+| `teletext_settings` | Theme, font, layout, and other preferences |
 
-Bookmarks and read status are stored in the browser so each user gets their own state when the app is hosted for multiple people.
+Per-user state is stored in the browser so each user gets their own bookmarks, read status, feed toggles, and settings when the app is hosted for multiple people. Settings use a localStorage-first approach: the server API provides defaults on first visit, then localStorage takes over.
 
 ## API
 
@@ -154,7 +158,6 @@ Bookmarks and read status are stored in the browser so each user gets their own 
 | GET | `/api/feeds` | -- | `{feeds: [url, ...]}` |
 | POST | `/api/feeds` | `{url}` | `{ok: true}` or 409 |
 | POST | `/api/feeds/delete` | `{url}` | `{ok: true}` or 404 |
-| POST | `/api/feeds/toggle` | `{url}` | `{ok: true, active: bool}` or 404 |
 | POST | `/api/feeds/discover` | `{url}` | `{feeds: [{url, title}, ...]}` |
 | GET | `/api/feeds/health` | -- | `{health: {url: {last_success, error_count, ...}}}` |
 | POST | `/api/feeds/opml/import` | `{content}` | `{imported: N, feeds: [...]}` |
@@ -207,7 +210,7 @@ static/
     render.js       DOM rendering (header, table, detail, settings, feeds)
     themes.js       Theme/font/layout switching + system theme listener
     keyboard.js     Keyboard shortcuts + multi-digit number input
-    storage.js      localStorage wrapper for bookmarks + read status
+    storage.js      localStorage for bookmarks, read status, disabled feeds, settings
     notifications.js Desktop notifications + keyword alert matching
 tests/              pytest + FastAPI TestClient
 Dockerfile          Python 3.12 slim
