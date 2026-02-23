@@ -216,3 +216,7 @@ tests/              pytest + FastAPI TestClient
 Dockerfile          Python 3.12 slim
 docker-compose.yml  Bind mounts ./data for persistence
 ```
+
+## License
+
+MIT -- see [LICENSE](LICENSE) for details.
